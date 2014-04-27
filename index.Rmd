@@ -9,7 +9,7 @@ widgets    : [mathjax]
 navbar:
   title: Kevin Ferris | Final Exam
 lead : >
-  April 29, 2014
+  April 30, 2014
 assets:
   css:
   - "http://fonts.googleapis.com/css?family=Raleway:300"
@@ -73,7 +73,7 @@ source("~/R Stuff/vwReg_v4.R")
 setwd("~/School/Stat 506 - Advanced Regression/Final/final506_writeup")
 load("num2_out.RData")
 load("num1b.RData")
-# load("num1c_out.RData")
+load("num1c_out.RData")
 ```
 
 
@@ -86,7 +86,7 @@ SES, math score in kindergarten, sex, and minority status are measured on the in
 ---
 ### Number 1 Part B
 
-The first thing I did with these data was look at the missingness patterns because some of the scores of teacher's mathematics knowledge were missing.  On the left is the distribution of the increase in math score for both the missing and non-missing data.  The two distributions look to be fairly similar; the only noticable difference is that all the students whose math scores decreased by 100 are from the missing data.  
+The first thing I did with these data was look at the missingness patterns because some of the scores of teacher's mathematics knowledge were missing.  On the left is the distribution of the increase in math score for both the missing and non-missing data.  The two distributions look to be fairly similar; the only noticeable difference is that all the students whose math scores decreased by 100 are from the missing data.  
 ```{r missingPlots, fig.width=10, fig.height=5}
 p1 <- ggplot(math1, aes(x=teachrMathprep, y = ..density..)) +
   geom_histogram(binwidth = .5, colour = "darkgreen", fill = "grey") + 
@@ -103,7 +103,7 @@ math1 <- na.omit(math1)
 math1$schoolid <- as.integer(as.factor(math1$schoolid))
 math1$classid <- as.integer(as.factor(math1$classid))
 ```
-For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to be missing.  This means that we will need to be very careful about the inferences we make for these data: we probably shouldn't infer the results beyond these data nor should we make causal inferences.
+For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to be missing.  This means that we will need to be very careful about the inferences we make for these data because it is not safe to assume that the data are missing at random. Even though we have random selection, we probably shouldn't infer the results beyond these data nor should we make causal inferences.
 
 Because we are mostly interested in exploring the relationships between the variables and not in finding a best fitting model, I decided to use Gelman's model selection strategy: keep all variables in the model unless they have a sign we don't expect and are not significant.  With that in mind, I should lay out the expected sign for each variable:
 
@@ -205,12 +205,12 @@ qplot(math1$pre.cent, resid(fit0)) + theme_bw() +
   labs(x = "Pre-Score", y = "Residuals")
 ```
 
-The residuals vs fitted values plot is located below.  There do not appear to be any noticable patterns so the constant variance assumption is probably okay.
+The residuals vs fitted values plot is located below.  There do not appear to be any noticeable patterns so the constant variance assumption is probably okay.
 ```{r residVsFitted, fig.width=6, fig.height=4}
 plot(fit0)
 ```
 
-In the model, I assumed that all the random terms were normally distributed.  I can check these assumptions by making normal quantiles plots for each term.  These plots are located below.  There are a few outlying points in the tail of the residuals, but we have a large dataset so this is not too uncommon.  Otherwise, these plots all look pretty good so the normality assumptions are probably okay.
+In the model, I assumed that all the random terms were normally distributed.  I can check these assumptions by making normal quantiles plots for each term.  These plots are located below.  There are a few outlying points in the tail of the residuals, but we have a large data set so this is not too uncommon.  Otherwise, these plots all look pretty good so the normality assumptions are probably okay.
 ```{r normalQQ, fig.width=12, fig.height=4}
 par(mfrow = c(1,3))
 qqPlot(resid(fit0), main = "Residuals")
@@ -224,6 +224,23 @@ To conclude, it looks as though the only strong predictors of math improvement a
 ---
 ### Number 1 Part C
 
+I fit the same model in JAGS using non-informative parameters.  I ran four chains, discarding the first 2000 iterations.  I then used a thinning interval of 8 for the next 2000 iterations.  This resulted in 1000 draws of the parameters.  Convergence diagnostics show that the posterior distributions had converged to stationary distributions.  Gelman's $\hat{R}$ was less than 1.02 for all the parameters and all the parameters had effective sample sizes of at least 150.  Trace plots of the parameters are provided below, and they show that the chains are mixing well.
+
+```{r jagsTracePlot, fig.height=10, fig.width=15}
+plot(out2, density = FALSE)
+```
+
+
+A summary of the parameters is provided in the table below.  These are now credible intervals obtained from the posterior distribution of each parameter.  This means that they have a slightly different interpretation.  For example, if we wanted to interpret the coefficient on SES, we would say that there is a 95% chance that a 1 unit increase in SES is associated with between a 2.72 and 7.79 true mean gain in math score after accounting for all other variables in the model.
+
+```{r num1cSummary, results='asis'}
+mytab <- summary(out2)$quantiles[2:13, ]
+rownames(mytab) <- c("preScore", "SES", "minority", "male", "Interaction", 
+                  "TeachPrep", "TeachXper", "TeachMath", 
+                  "Poverty", 
+                  "School SD", "Class SD", "Residual SD")
+kable(mytab)
+```
 
 
 

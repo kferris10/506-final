@@ -9,7 +9,7 @@ widgets    : [mathjax]
 navbar:
   title: Kevin Ferris | Final Exam
 lead : >
-  April 29, 2014
+  April 30, 2014
 assets:
   css:
   - "http://fonts.googleapis.com/css?family=Raleway:300"
@@ -42,10 +42,10 @@ SES, math score in kindergarten, sex, and minority status are measured on the in
 ---
 ### Number 1 Part B
 
-The first thing I did with these data was look at the missingness patterns because some of the scores of teacher's mathematics knowledge were missing.  On the left is the distribution of the increase in math score for both the missing and non-missing data.  The two distributions look to be fairly similar; the only noticable difference is that all the students whose math scores decreased by 100 are from the missing data.  
+The first thing I did with these data was look at the missingness patterns because some of the scores of teacher's mathematics knowledge were missing.  On the left is the distribution of the increase in math score for both the missing and non-missing data.  The two distributions look to be fairly similar; the only noticeable difference is that all the students whose math scores decreased by 100 are from the missing data.  
 <img src="assets/fig/missingPlots.png" title="plot of chunk missingPlots" alt="plot of chunk missingPlots" style="display: block; margin: auto;" />
 
-For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to be missing.  This means that we will need to be very careful about the inferences we make for these data: we probably shouldn't infer the results beyond these data nor should we make causal inferences.
+For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to be missing.  This means that we will need to be very careful about the inferences we make for these data because it is not safe to assume that the data are missing at random. Even though we have random selection, we probably shouldn't infer the results beyond these data nor should we make causal inferences.
 
 Because we are mostly interested in exploring the relationships between the variables and not in finding a best fitting model, I decided to use Gelman's model selection strategy: keep all variables in the model unless they have a sign we don't expect and are not significant.  With that in mind, I should lay out the expected sign for each variable:
 
@@ -102,11 +102,11 @@ As we noted earlier, we should look at the pattern of the residuals vs pre-score
 <img src="assets/fig/residVsPre.png" title="plot of chunk residVsPre" alt="plot of chunk residVsPre" style="display: block; margin: auto;" />
 
 
-The residuals vs fitted values plot is located below.  There do not appear to be any noticable patterns so the constant variance assumption is probably okay.
+The residuals vs fitted values plot is located below.  There do not appear to be any noticeable patterns so the constant variance assumption is probably okay.
 <img src="assets/fig/residVsFitted.png" title="plot of chunk residVsFitted" alt="plot of chunk residVsFitted" style="display: block; margin: auto;" />
 
 
-In the model, I assumed that all the random terms were normally distributed.  I can check these assumptions by making normal quantiles plots for each term.  These plots are located below.  There are a few outlying points in the tail of the residuals, but we have a large dataset so this is not too uncommon.  Otherwise, these plots all look pretty good so the normality assumptions are probably okay.
+In the model, I assumed that all the random terms were normally distributed.  I can check these assumptions by making normal quantiles plots for each term.  These plots are located below.  There are a few outlying points in the tail of the residuals, but we have a large data set so this is not too uncommon.  Otherwise, these plots all look pretty good so the normality assumptions are probably okay.
 <img src="assets/fig/normalQQ.png" title="plot of chunk normalQQ" alt="plot of chunk normalQQ" style="display: block; margin: auto;" />
 
 
@@ -115,6 +115,29 @@ To conclude, it looks as though the only strong predictors of math improvement a
 
 ---
 ### Number 1 Part C
+
+I fit the same model in JAGS using non-informative parameters.  I ran four chains, discarding the first 2000 iterations.  I then used a thinning interval of 8 for the next 2000 iterations.  This resulted in 1000 draws of the parameters.  Convergence diagnostics show that the posterior distributions had converged to stationary distributions.  Gelman's $\hat{R}$ was less than 1.02 for all the parameters and all the parameters had effective sample sizes of at least 150.  Trace plots of the parameters are provided below, and they show that the chains are mixing well.
+
+<img src="assets/fig/jagsTracePlot1.png" title="plot of chunk jagsTracePlot" alt="plot of chunk jagsTracePlot" style="display: block; margin: auto;" /><img src="assets/fig/jagsTracePlot2.png" title="plot of chunk jagsTracePlot" alt="plot of chunk jagsTracePlot" style="display: block; margin: auto;" />
+
+
+
+A summary of the parameters is provided in the table below.  These are now credible intervals obtained from the posterior distribution of each parameter.  This means that they have a slightly different interpretation.  For example, if we wanted to interpret the coefficient on SES, we would say that there is a 95% chance that a 1 unit increase in SES is associated with between a 2.72 and 7.79 true mean gain in math score after accounting for all other variables in the model.
+
+|id           |      2.5%|       25%|      50%|      75%|    97.5%|
+|:------------|---------:|---------:|--------:|--------:|--------:|
+|preScore     |   -0.4938|   -0.4456|  -0.4200|  -0.3934|  -0.3402|
+|SES          |    2.7207|    4.4301|   5.2732|   6.1785|   7.7905|
+|minority     |  -11.6205|   -8.2805|  -6.7592|  -5.0921|  -1.7422|
+|male         |   -1.7564|    0.3108|   1.4140|   2.6498|   4.8224|
+|Interaction  |   -0.1808|   -0.1177|  -0.0846|  -0.0532|   0.0077|
+|TeachPrep    |   -1.2146|    0.2818|   1.0277|   1.7920|   3.2877|
+|TeachXper    |   -0.1853|   -0.0330|   0.0381|   0.1150|   0.2736|
+|TeachMath    |   -0.1298|    1.0597|   1.8720|   2.7351|   4.0489|
+|Poverty      |  -26.1502|  -13.7983|  -7.5987|  -0.8332|  11.8967|
+|School SD    |    5.3766|    7.7167|   8.8391|   9.8604|  12.1103|
+|Class SD     |    5.3254|    7.6723|   8.9047|  10.0291|  12.1741|
+|Residual SD  |   25.5208|   26.3837|  26.8501|  27.3176|  28.1900|
 
 
 
@@ -139,19 +162,26 @@ The model used was $y_i = \beta_0 + \beta_1 * grade_i + \beta_{2,j[i]} + \beta_{
 
 4 chains were used for the MCMC sampling, and the first 1000 iterations were discarded as a warm-up.  A thinning interval of 4 was used for the next 1000 observations.  The diagnostics for the model look pretty good.  Gelman's $\hat{R}$ are less than 1.02 for all the terms and the multivariate $\hat{R}$ is 1.02.  Traceplots for each term are provided below and show that the chains appear to be mixing well.  Overall, it looks like things have converged.
 
-<img src="assets/fig/num2trace.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
+<img src="assets/fig/num2trace1.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" /><img src="assets/fig/num2trace2.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
 
 
 Summaries of the posterior distribution for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
-|id      |    2.5%|     25%|     50%|     75%|   97.5%|
-|:-------|-------:|-------:|-------:|-------:|-------:|
-|b0      |  1.9460|  2.0200|  2.0643|  2.1028|  2.1860|
-|b1      |  0.9749|  1.0076|  1.0258|  1.0432|  1.0735|
-|rho     |  0.6423|  0.6877|  0.7115|  0.7325|  0.7739|
-|sig.b2  |  1.2872|  1.3419|  1.3750|  1.4067|  1.4688|
-|sig.b3  |  0.4408|  0.4675|  0.4814|  0.4974|  0.5248|
-|sig.y   |  0.6679|  0.6875|  0.6971|  0.7084|  0.7276|
+|id      |      2.5%|       25%|      50%|      75%|    97.5%|
+|:-------|---------:|---------:|--------:|--------:|--------:|
+|b0      |   56.4652|   59.3700|  61.0144|  62.5768|  65.1235|
+|b1      |   -0.4938|   -0.4456|  -0.4200|  -0.3934|  -0.3402|
+|b2      |    2.7207|    4.4301|   5.2732|   6.1785|   7.7905|
+|sig.b2  |  -11.6205|   -8.2805|  -6.7592|  -5.0921|  -1.7422|
+|sig.b3  |   -1.7564|    0.3108|   1.4140|   2.6498|   4.8224|
+|b5      |   -0.1808|   -0.1177|  -0.0846|  -0.0532|   0.0077|
+|b6      |   -1.2146|    0.2818|   1.0277|   1.7920|   3.2877|
+|b7      |   -0.1853|   -0.0330|   0.0381|   0.1150|   0.2736|
+|b8      |   -0.1298|    1.0597|   1.8720|   2.7351|   4.0489|
+|b9      |  -26.1502|  -13.7983|  -7.5987|  -0.8332|  11.8967|
+|sig.a0  |    5.3766|    7.7167|   8.8391|   9.8604|  12.1103|
+|sig.a1  |    5.3254|    7.6723|   8.9047|  10.0291|  12.1741|
+|sig.y   |   25.5208|   26.3837|  26.8501|  27.3176|  28.1900|
 
 
 
