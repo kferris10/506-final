@@ -44,6 +44,8 @@ require(R2jags)
 require(car)
 require(plyr)
 require(reshape2)
+require(mvrnorm)
+source("panelStackedDens.R")
 set.seed(42)
 ```
 
@@ -265,6 +267,8 @@ ggplot(math3, aes(Grade, Score, group = id)) +
 
 The model used was $y_i = \beta_0 + \beta_1 * grade_i + \beta_{2,j[i]} + \beta_{3,j[i]} * grade_i + \epsilon_i$.  Here, $y_i$ is the math score for the $i^{th}$ observation.  $\beta_{2,j[i]}$ and $\beta_{3,j[i]}$ follow a multivariate normal distribution with a mean vector of 0 and a 2x2 variance-covariance matrix.  This matrix has $\sigma_{\beta2}^2$ and $\sigma_{\beta3}^2$ on the diagonal and $\sigma_{\beta2} * \sigma_{\beta3} * \rho$ on the off-diagonal.  The errors are assumed to be independent of the random effects and to be $\sim N(0, \sigma_y^2)$.
 
+I put diffuse normal priors on the fixed effects in the model.  I used a scaled-inverse Wishart distribution with 3 df as the prior on the random slope, random intercept, and the correlation between the two.  I used a diffuse uniform prior on the residual variability in the data ($\sigma_y^2$).
+
 ```{r jagsMod, eval=FALSE}
 
 cat("model {
@@ -316,18 +320,47 @@ save(out2, file = "num2_out.RData")
 
 ```{r num2trace, fig.width=12, fig.height=8}
 par(mfrow = c(3,2))
-plot(out2, density = FALSE)
+plot(out3, density = FALSE)
 ```
 
 Summaries of the posterior distribution for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
 ```{r num2summ, results='asis'}
-summ.quant <- summary(out2)$quantiles
-rownames(summ.quant)[4:5] <- c("sig.b2", "sig.b3")
-kable(summ.quant)
+summ.quant <- summary(out3)$quantiles
+rownames(summ.quant) <- c("Intercept", "Slope", "Correlation", "Intercept SD", 
+                          "Slope SD", "Residual SD")
+kable(summ.quant, digits = 3)
 ```
 
+It is easier to plot these results.  Below is a plot of the posterior distribution of the true mean math score for each grade on the left and the posterior distribution for a new student on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
 
+There is also more uncertainty as students get older.  I theorize that this is because there's just not that much of a difference between good students and weaker students at the younger ages.  As the students age, the good students advance into geometry and trig while the weaker students fall behind a little bit.  The increased variability for older students originates because we start to see students differentiate themselves by ability.
+```{r num2post, fig.width=12, fig.height=5}
+draws <- ldply(out3, data.frame)
+mean.draw <- t(apply(draws, 1, function(x) {
+  vcov.mat <- matrix(c(x[4]^2, rep(prod(x[3:5]), 2), x[5]^2), ncol = 2)
+  rndm.eff <- mvrnorm(1, c(0,0), vcov.mat)
+  c(x[1] + x[2] * (6:9 - 7.5) + rndm.eff[1] + rndm.eff[2] * (6:9 - 7.5), x[6])
+}))
+mean.melt <- melt(mean.draw[, 1:4])
+names(mean.melt) <- c("Simulation", "Grade", "Score")
+mean.melt$Grade <- factor(rep(6:9, each = 1000))
+new.draw <- t(apply(mean.draw, 1, function(x) rnorm(4, x[1:4], x[5])))
+new.melt <- melt(new.draw)
+names(new.melt) <- c("Simulation", "Grade", "Score")
+new.melt$Grade <- factor(new.melt$Grade + 5)
+
+overlap <- 0.5
+h2 <- bwplot(Score ~ Grade, data = mean.melt, 
+       panel = panel.stackedDens, overlap = overlap, xlab = "Grade", 
+       lattice.options = list(axis.padding = list(factor = c(0.6, 0.7 + overlap))))
+h1 <- bwplot(Score ~ Grade, data = new.melt, 
+       panel = panel.stackedDens, overlap = overlap, xlab = "Grade", 
+       lattice.options = list(axis.padding = list(factor = c(0.6, 0.7 + overlap))))
+grid.arrange(h2, h1, ncol = 2)
+```
+
+Since these students are randomly selected, we can say that these improvements that we've found in math scores will hold true for all students.  We can't make causal inferences, but we can say that as students increase in age by one year, their true mean math achievement score tends to increase by 1 (with a 95% credible interval from 0.975 to 1.078) 
 
 ---
 ### R Code

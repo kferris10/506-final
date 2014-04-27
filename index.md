@@ -24,6 +24,16 @@ assets:
 
 
 
+```
+## Warning: there is no package called 'mvrnorm'
+```
+
+```
+## Error: panelStackedDens.R:68:19: unexpected symbol
+## 67:     yscale <- current.panel.limits()$ylim
+## 68:     height <- (1  overlap
+##                       ^
+```
 
 
 
@@ -157,34 +167,35 @@ The trajectory of each child over time is plotted below.  There appears to be a 
 
 The model used was $y_i = \beta_0 + \beta_1 * grade_i + \beta_{2,j[i]} + \beta_{3,j[i]} * grade_i + \epsilon_i$.  Here, $y_i$ is the math score for the $i^{th}$ observation.  $\beta_{2,j[i]}$ and $\beta_{3,j[i]}$ follow a multivariate normal distribution with a mean vector of 0 and a 2x2 variance-covariance matrix.  This matrix has $\sigma_{\beta2}^2$ and $\sigma_{\beta3}^2$ on the diagonal and $\sigma_{\beta2} * \sigma_{\beta3} * \rho$ on the off-diagonal.  The errors are assumed to be independent of the random effects and to be $\sim N(0, \sigma_y^2)$.
 
+I put diffuse normal priors on the fixed effects in the model.  I used a scaled-inverse Wishart distribution with 3 df as the prior on the random slope, random intercept, and the correlation between the two.  I used a diffuse uniform prior on the residual variability in the data ($\sigma_y^2$).
+
 
 
 
 4 chains were used for the MCMC sampling, and the first 1000 iterations were discarded as a warm-up.  A thinning interval of 4 was used for the next 1000 observations.  The diagnostics for the model look pretty good.  Gelman's $\hat{R}$ are less than 1.02 for all the terms and the multivariate $\hat{R}$ is 1.02.  Traceplots for each term are provided below and show that the chains appear to be mixing well.  Overall, it looks like things have converged.
 
-<img src="assets/fig/num2trace1.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" /><img src="assets/fig/num2trace2.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
+<img src="assets/fig/num2trace.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
 
 
 Summaries of the posterior distribution for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
-|id      |      2.5%|       25%|      50%|      75%|    97.5%|
-|:-------|---------:|---------:|--------:|--------:|--------:|
-|b0      |   56.4652|   59.3700|  61.0144|  62.5768|  65.1235|
-|b1      |   -0.4938|   -0.4456|  -0.4200|  -0.3934|  -0.3402|
-|b2      |    2.7207|    4.4301|   5.2732|   6.1785|   7.7905|
-|sig.b2  |  -11.6205|   -8.2805|  -6.7592|  -5.0921|  -1.7422|
-|sig.b3  |   -1.7564|    0.3108|   1.4140|   2.6498|   4.8224|
-|b5      |   -0.1808|   -0.1177|  -0.0846|  -0.0532|   0.0077|
-|b6      |   -1.2146|    0.2818|   1.0277|   1.7920|   3.2877|
-|b7      |   -0.1853|   -0.0330|   0.0381|   0.1150|   0.2736|
-|b8      |   -0.1298|    1.0597|   1.8720|   2.7351|   4.0489|
-|b9      |  -26.1502|  -13.7983|  -7.5987|  -0.8332|  11.8967|
-|sig.a0  |    5.3766|    7.7167|   8.8391|   9.8604|  12.1103|
-|sig.a1  |    5.3254|    7.6723|   8.9047|  10.0291|  12.1741|
-|sig.y   |   25.5208|   26.3837|  26.8501|  27.3176|  28.1900|
+|id            |   2.5%|    25%|    50%|    75%|  97.5%|
+|:-------------|------:|------:|------:|------:|------:|
+|Intercept     |  1.932|  2.032|  2.075|  2.115|  2.199|
+|Slope         |  0.975|  1.009|  1.029|  1.046|  1.078|
+|Correlation   |  0.646|  0.689|  0.714|  0.736|  0.777|
+|Intercept SD  |  1.290|  1.342|  1.374|  1.406|  1.467|
+|Slope SD      |  0.440|  0.467|  0.481|  0.495|  0.523|
+|Residual SD   |  0.668|  0.687|  0.698|  0.709|  0.730|
 
 
+It is easier to plot these results.  Below is a plot of the posterior distribution of the true mean math score for each grade on the left and the posterior distribution for a new student on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
 
+There is also more uncertainty as students get older.  I theorize that this is because there's just not that much of a difference between good students and weaker students at the younger ages.  As the students age, the good students advance into geometry and trig while the weaker students fall behind a little bit.  The increased variability for older students originates because we start to see students differentiate themselves by ability.
+<img src="assets/fig/num2post.png" title="plot of chunk num2post" alt="plot of chunk num2post" style="display: block; margin: auto;" />
+
+
+Since these students are randomly selected, we can say that these improvements that we've found in math scores will hold true for all students.  We can't make causal inferences, but we can say that as students increase in age by one year, their true mean math achievement score tends to increase by 1 (with a 95% credible interval from 0.975 to 1.078) 
 
 ---
 ### R Code
