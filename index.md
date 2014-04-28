@@ -24,16 +24,6 @@ assets:
 
 
 
-```
-## Warning: there is no package called 'mvrnorm'
-```
-
-```
-## Error: panelStackedDens.R:68:19: unexpected symbol
-## 67:     yscale <- current.panel.limits()$ylim
-## 68:     height <- (1  overlap
-##                       ^
-```
 
 
 
@@ -45,7 +35,7 @@ assets:
 
 Poverty rate is measured at the school level.
 
-The number of classes the teacher has taken, the teacher's mathematical knowledge, and the number of years of experience of the teacher are measured at the class level.
+The number of math classes the teacher has taken, the teacher's mathematical knowledge, and the number of years of experience of the teacher are measured at the class level.
 
 SES, math score in kindergarten, sex, and minority status are measured on the individual level.
 
@@ -55,36 +45,38 @@ SES, math score in kindergarten, sex, and minority status are measured on the in
 The first thing I did with these data was look at the missingness patterns because some of the scores of teacher's mathematics knowledge were missing.  On the left is the distribution of the increase in math score for both the missing and non-missing data.  The two distributions look to be fairly similar; the only noticeable difference is that all the students whose math scores decreased by 100 are from the missing data.  
 <img src="assets/fig/missingPlots.png" title="plot of chunk missingPlots" alt="plot of chunk missingPlots" style="display: block; margin: auto;" />
 
-For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to be missing.  This means that we will need to be very careful about the inferences we make for these data because it is not safe to assume that the data are missing at random. Even though we have random selection, we probably shouldn't infer the results beyond these data nor should we make causal inferences.
+For most of the explanatory variables, there was not much of a difference in the distribution between the missing and non-missing data.  However, on the right in the plot above it looks like the distribution of teacher's math preparation is plotted, and it looks like slightly more inexperienced teacher's are likely to have missing data.  The same pattern held for poverty rate --- poorer schools were slightly more likely to have missing data.  This means that we will need to be very careful about the inferences we make for these data because it is not safe to assume that the data are missing at random. Even though we have random selection, we probably shouldn't infer the results beyond these data nor should we make causal inferences.
 
-Because we are mostly interested in exploring the relationships between the variables and not in finding a best fitting model, I decided to use Gelman's model selection strategy: keep all variables in the model unless they have a sign we don't expect and are not significant.  With that in mind, I should lay out the expected sign for each variable:
+Because we are mostly interested in exploring the relationships between the variables and not in finding a best fitting model, I decided to use Gelman's model selection strategy: keep all variables in the model unless they have a sign we don't expect and are not significant.  With that in mind, I should lay out the expected sign for each variable.  I wasn't sure what to expect for the sex variable so I'll include it in the model regardless.
 
-|Variable         |Level       |Expected.Sign        |
-|:----------------|:-----------|:--------------------|
-|sex              |individual  |positive for female  |
-|minortiy         |individual  |negative             |
-|SES              |individual  |positive             |
-|mathPrescore     |individual  |positive             |
-|teachrXper       |class       |positive             |
-|teachrMath       |class       |positive             |
-|teacherMathprep  |class       |positive             |
-|povertyRate      |school      |negative             |
+|Variable         |Level       |Expected.Sign    |
+|:----------------|:-----------|:----------------|
+|sex              |individual  |no expectations  |
+|minortiy         |individual  |negative         |
+|SES              |individual  |positive         |
+|mathPrescore     |individual  |positive         |
+|teachrXper       |class       |positive         |
+|teachrMath       |class       |positive         |
+|teacherMathprep  |class       |positive         |
+|povertyRate      |school      |negative         |
 
 
-Next, I wanted to consider what interactions would be allowed in the model.  I decided to only consider interactions of categorical and quantitative variables at the individual level.  I then made plots like the one below to assess interactions.  To make this plot, 1000 bootstrap replicates of the data were made.  A loess smoother was then fit to each replicate.  Then, the density of the fitted values at 200 equal spaced intervals of the mathprescore variable was calculated.  The intensity of the color is proportional to the density.  So, in areas where the color is more intense, we are more certain of the location of the true mean of math gain.
+Next, I wanted to consider what interactions would be allowed in the model.  I decided to only consider interactions of categorical and quantitative variables at the individual level.  I thought quantitative by quantitative interactions would be unlikely and would be really hard to interpret so I ignored all those possibilities.  I also thought that interactions across different levels of the model would be unlikely so I ruled them out.
+
+I then made plots like the one below to assess interactions.  To make this plot, 1000 bootstrap replicates of the data were made.  A loess smoother was then fit to each replicate.  Then, the density of the fitted values at 200 equal spaced intervals of the mathprescore variable was calculated.  The intensity of the color is proportional to the density.  So, in areas where the color is more intense, we are more certain of the location of the true mean math gain.
 
 
 <iframe width = "723" height = "406" src = "vwSex_prescore.png"></iframe>
 
-In this plot, it really appears that there is no difference in the relationship between men and women so I didn't include an interaction between pre-score and sex in the model.  There are a couple of notable features in the plot though.  It looks as though pre-score is truncated at 300 and 650.  The relationship looks to be fairly linear everywhere else, but, because of this truncation, things may not be entirely linear in the tails.  We'll have to check the residuals to make sure that things are linear.
+In this plot, it really appears that there is no difference in the relationship between men and women so I didn't include an interaction between pre-score and sex in the model.  There are a couple of notable features in the plot though.  It looks as though pre-score is truncated at 300 and 650.  The relationship looks to be fairly linear everywhere else, but, because of this truncation, things may not be entirely linear in the tails.  We'll have to check the residuals to make sure that the linearity assumption is reasonable.
 
-The plot below looks for an interaction between pre-score and minority status.  Here, there does appear to be an interaction present.  It seems that the slope is more negative for minorities than for non-minorities so I will include an interaction term for minority and pre-score in the model.
+The plot below looks for an interaction between pre-score and minority status.  Here, there does appear to be an interaction present.  It seems that the slope is slightly steeper for minorities than for non-minorities so I will include an interaction term for minority and pre-score in the model.
 
 
 <iframe width = "723" height = "406" src = "vwMinority_prescore.png"></iframe>
 Neither minority status nor sex seemed to have a strong interaction with SES when I made these plots, so I did not include those interactions.
 
-I included random intercepts for both school and class-within-school only.  I considered random intercepts, but they did not seem to provide any improvement to the model (measured using AICs) so I decided not to include any of them.  The final model I used is:
+I included random intercepts for both school and class-within-school only.  I considered random slopes, but they did not seem to provide any improvement to the model (measured using AICs) so I decided not to include any of them.  The final model I used is:
 
 $Gain_i = \beta_0 + \beta_1 * SES_i + \beta_2 * pre_i + \beta_3 * I(minority_i == 1) + \beta_4 * I(sex_i == M) + \\ \beta_5 * I(minority_i == 1) * pre_i + \beta_6 * teacherPrep_{j[i]} + \\ \beta_7 * teacherExper_{j[i]} + \beta_8 * teacherMath_{j[i]} + \beta_9 * povertyRate_{k[i]} + \\ 
 b_{1,j[i]} + b_{2,k[i]} +  \epsilon_i$
@@ -100,11 +92,11 @@ Caterpillar plots for the fixed effects from the model are provided below.  Thes
 <img src="assets/fig/catPlots.png" title="plot of chunk catPlots" alt="plot of chunk catPlots" style="display: block; margin: auto;" />
 
 
-It appears as though there is not much evidence to suggest that sex, teacher's experience, teacher's math knowledge, or school's poverty rate,  have a strong positive or negative effect on student's math improvement.  For each of these terms, there is just too much uncertainty to say that they have a positive or negative effect on math improvement.  There may be some evidence that teacher's math background has a positive effect on student's improvement.
+It appears as though there is not much evidence to suggest that sex, teacher's experience, teacher's math knowledge, or school's poverty rate,  have a strong positive or negative effect on student's math improvement.  For each of these terms, there is just too much uncertainty to identify whether they have a strong effect on math improvement.  The 95% confidence interval for teacher's math knowledge contains zero, but most of the interval is above zero and the entire 50% interval is above zero.  So there is some evidence that teacher's math knowledge has a positive effect on student's improvement, but the evidence is not conclusive.
 
-SES does tend to have a positive effect on student's math improvements.  Interestingly, the pre-score for both minorities and non-minorities has a negative relationship with math gain.  This could mean that student's who are already good don't tend to get much better.  Alternatively, it could me that we are seeing a strong regression to the mean in these data.  This would suggest that student's who did very well in kindergarten were just lucky and that luck dissipated the next year.
+SES does tend to have a positive effect on student's math improvements.  Interestingly, the pre-score for both minorities and non-minorities has a negative relationship with math gain.  This could mean that student's who are already good don't tend to get much better.  Alternatively, it could mean that we are seeing a strong regression to the mean in these data.  This would suggest that students who did very well in kindergarten were just lucky and that luck dissipated the next year.
 
-There is extremely strong evidence that the intercept adjustment for minorities is pretty negative.  This suggests that, on average, minorities tend to have smaller improvements than non-minorities.  I did not include a caterpillar interval for the interaction term because it is fairly small.  But there is some evidence that the slope on pre-score is more negative for minorities; this would suggest that minority students who were initially strong did not improve as much as non-minorities who were initially strong.
+There is extremely strong evidence that the intercept adjustment for minorities is negative.  This suggests that, on average, minorities tend to have smaller improvements than non-minorities.  I did not include a caterpillar interval for the interaction term because it is fairly small.  But there is some evidence that the slope on pre-score is more negative for minorities; this would suggest that minority students who were initially strong did not improve as much as non-minorities who were initially strong.
 
 The variances of both the class and school effect are both one-tenth the variance of the residual error.  This suggests that, relative to the noise is the data, the variability between schools and between classes within a school is not very large.
 
@@ -126,13 +118,13 @@ To conclude, it looks as though the only strong predictors of math improvement a
 ---
 ### Number 1 Part C
 
-I fit the same model in JAGS using non-informative parameters.  I ran four chains, discarding the first 2000 iterations.  I then used a thinning interval of 8 for the next 2000 iterations.  This resulted in 1000 draws of the parameters.  Convergence diagnostics show that the posterior distributions had converged to stationary distributions.  Gelman's $\hat{R}$ was less than 1.02 for all the parameters and all the parameters had effective sample sizes of at least 150.  Trace plots of the parameters are provided below, and they show that the chains are mixing well.
+I fit the same model in JAGS using non-informative parameters.  I ran four chains, discarding the first 2000 iterations.  I then used a thinning interval of 8 for the next 2000 iterations.  This resulted in 1000 draws of the parameters.  Convergence diagnostics show that the posterior distributions have converged to stationary distributions.  Gelman's $\hat{R}$ was less than 1.02 for all the parameters and all the parameters had effective sample sizes of at least 150.  Trace plots of the parameters are provided below, and they show that the chains are mixing well.
 
 <img src="assets/fig/jagsTracePlot1.png" title="plot of chunk jagsTracePlot" alt="plot of chunk jagsTracePlot" style="display: block; margin: auto;" /><img src="assets/fig/jagsTracePlot2.png" title="plot of chunk jagsTracePlot" alt="plot of chunk jagsTracePlot" style="display: block; margin: auto;" />
 
 
 
-A summary of the parameters is provided in the table below.  These are now credible intervals obtained from the posterior distribution of each parameter.  This means that they have a slightly different interpretation.  For example, if we wanted to interpret the coefficient on SES, we would say that there is a 95% chance that a 1 unit increase in SES is associated with between a 2.72 and 7.79 true mean gain in math score after accounting for all other variables in the model.
+A summary of the parameters is provided in the table below.  These are now credible intervals obtained from the posterior distribution of each parameter conditioned pn all the other parameters.  This means that they have a slightly different interpretation.  For example, if we wanted to interpret the coefficient on SES, we would say that there is a 95% chance that a 1 unit increase in SES is associated with between a 2.72 and 7.79 true mean gain in math score after accounting for all other variables in the model.
 
 |id           |      2.5%|       25%|      50%|      75%|    97.5%|
 |:------------|---------:|---------:|--------:|--------:|--------:|
@@ -155,7 +147,7 @@ A summary of the parameters is provided in the table below.  These are now credi
 ---
 ### Number 2
 
-For this problem, we are given information of the math scores of 500 students in grades 6 through 9.  The distribution of score in each grade is plotted below.  It looks as though there is a linear relationship between score and grade so I treated grade as a quantitative variable.
+For this problem, we are given information on the math scores of 500 students in grades 6 through 9.  The distribution of score in each grade is plotted below.  It looks as though there is a linear relationship between score and grade so I treated grade as a quantitative variable.
 
 <img src="assets/fig/scoreBoxPlots.png" title="plot of chunk scoreBoxPlots" alt="plot of chunk scoreBoxPlots" style="display: block; margin: auto;" />
 
@@ -167,7 +159,7 @@ The trajectory of each child over time is plotted below.  There appears to be a 
 
 The model used was $y_i = \beta_0 + \beta_1 * grade_i + \beta_{2,j[i]} + \beta_{3,j[i]} * grade_i + \epsilon_i$.  Here, $y_i$ is the math score for the $i^{th}$ observation.  $\beta_{2,j[i]}$ and $\beta_{3,j[i]}$ follow a multivariate normal distribution with a mean vector of 0 and a 2x2 variance-covariance matrix.  This matrix has $\sigma_{\beta2}^2$ and $\sigma_{\beta3}^2$ on the diagonal and $\sigma_{\beta2} * \sigma_{\beta3} * \rho$ on the off-diagonal.  The errors are assumed to be independent of the random effects and to be $\sim N(0, \sigma_y^2)$.
 
-I put diffuse normal priors on the fixed effects in the model.  I used a scaled-inverse Wishart distribution with 3 df as the prior on the random slope, random intercept, and the correlation between the two.  I used a diffuse uniform prior on the residual variability in the data ($\sigma_y^2$).
+I put diffuse normal priors on the fixed effects in the model.  I used a scaled-inverse Wishart distribution with 3 df as the prior on the random slope, random intercept, and the correlation between the two.  I used a diffuse uniform prior on the residual variability in the data ($\sigma_y^2$).  I centered the explanatory variable (grade) when passing it into JAGS.
 
 
 
@@ -177,7 +169,7 @@ I put diffuse normal priors on the fixed effects in the model.  I used a scaled-
 <img src="assets/fig/num2trace.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
 
 
-Summaries of the posterior distribution for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
+Summaries of the conditional posterior distributions for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
 |id            |   2.5%|    25%|    50%|    75%|  97.5%|
 |:-------------|------:|------:|------:|------:|------:|

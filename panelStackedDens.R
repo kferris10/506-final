@@ -65,7 +65,7 @@ panel.stackedDens <-
     
     xscale <- current.panel.limits()$xlim
     yscale <- current.panel.limits()$ylim
-    height <- (1  overlap)
+    height <- (1 + overlap)
     
     if (horizontal)
     {
