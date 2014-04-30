@@ -278,6 +278,7 @@ cat("model {
     y[i] ~ dnorm(yhat[i], tau.y)
     yhat[i] <- b0 + b1 * gr[i] + 
       a0[id[i]] + a1[id[i]] * gr[i]
+    resid[i] <- y[i] - yhat[i]
   }  
 
   b0 ~ dnorm(0, .001)
@@ -314,8 +315,10 @@ inits <- function() {
 
 pre2 <- jags.model("~/School/Stat 506 - Advanced Regression/Final/Miscellaneous/num2.txt", 
                    jags2.dat, n.adapt = 1000, n.chains = 4, inits = inits())
-out2 <- coda.samples(pre2, parms2, n.iter=1000, thin=4) 
-save(out2, file = "num2_out.RData")
+out3 <- coda.samples(pre2, parms2, n.iter=1000, thin=4) 
+out4 <- coda.samples(pre2, "resid", n.iter=1000, thin=4) 
+out5 <- coda.samples(pre3, "yhat", n.iter=1000, thin=4)
+save(out3, out4, out5, file = "num2_out.RData")
 ```
 
 4 chains were used for the MCMC sampling, and the first 1000 iterations were discarded as a warm-up.  A thinning interval of 4 was used for the next 1000 observations.  The diagnostics for the model look pretty good.  Gelman's $\hat{R}$ are less than 1.02 for all the terms and the multivariate $\hat{R}$ is 1.02.  Traceplots for each term are provided below and show that the chains appear to be mixing well.  Overall, it looks like things have converged.
@@ -325,7 +328,24 @@ par(mfrow = c(3,2))
 plot(out3, density = FALSE)
 ```
 
-Summaries of the conditional posterior distributions for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
+We can also check residuals vs fitted values plots and normal quantiles plots.  Below is a plot of the average residual plotted against the average fitted value of each observation.  There doesn't appear to be any pattern or any non-constant which is a good sign.
+
+```{r num2Diag, fig.width=6, fig.height=6}
+draws.resid <- ldply(out4, data.frame)
+mean.resid <- apply(draws.resid, 2, mean)
+draws.yhat <- ldply(out5, data.frame)
+mean.yhat <- apply(draws.yhat, 2, mean)
+qplot(mean.yhat, mean.resid) + theme_bw() + 
+  labs(x = "Average Fitted Value", y = "Average Residual")
+```
+
+A normal-quantiles plot of the average residual is located below.  There don't appear to be any problems with normality in the average residual in this plot.  These are both good signs which show that some of the assumptions for our model are met.
+
+```{r num2QQ, fig.width=6, fig.height=6}
+qqPlot(mean.resid)
+```
+
+Summaries of the complete conditional distributions for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
 ```{r num2summ, results='asis'}
 summ.quant <- summary(out3)$quantiles
@@ -334,7 +354,7 @@ rownames(summ.quant) <- c("Intercept", "Slope", "Correlation", "Intercept SD",
 kable(summ.quant, digits = 3)
 ```
 
-It is easier to plot these results.  Below is a plot of the posterior distribution of the true mean math score for each grade on the left and the posterior distribution for a new student on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
+It is easier to plot these results.  Below, a plot of the complete conditional distribution of the true mean math score for each grade is on the left and the posterior distribution for a new student is on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
 
 There is also more uncertainty as students get older.  I theorize that this is because there's just not that much of a difference between good students and weaker students at the younger ages.  As the students age, the good students advance into geometry and trig while the weaker students fall behind a little bit.  The increased variability for older students originates because we start to see students differentiate themselves by ability.
 ```{r num2post, fig.width=12, fig.height=5}
@@ -362,10 +382,32 @@ h1 <- bwplot(Score ~ Grade, data = new.melt,
 grid.arrange(h2, h1, ncol = 2)
 ```
 
+To derive the correlation, I'm going to change your notation a bit so that it is consistent with how I've been writing my models.  
+
+Let $y_i$ and $y_k$ denote two observations from individual $j$.  Recall that our model is $y_i = \beta_0 + \beta_1 * x_i + b_{0,j[i]} + b_{1,j[i]} * x[i] + \epsilon_i$.  Then:
+
+$Cov(y_i, y_k) = Cov(\beta_0 + \beta_1 * x_i + b_{0,j} + b_{1,j} * x[i] + \epsilon_i, \beta_0 + \beta_1 * x_k + b_{0,j} + b_{1,j} * x[k] + \epsilon_k)$
+
+This can be re-written as the covariance of the cross-product of all the terms (I think my terminology is correct here).  The fixed effects drop out of this because they do not vary.  We assume the random effects are all independent of the error so:
+
+$Cov(y_i, y_k) = Cov(b_{0,j}, b_{0,j}) + Cov(b_{1,j}*x_i, b_{1,j}*x_k) + Cov(b_{0,j}, b_{1,j}*x_k) + Cov(b_{1,j}*x_i, b_{0,j})$
+
+$Cov(y_i, y_k) = \sigma_{b0}^2 + \sigma_{b1}^2*x_i*x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_i$
+
+The correlation is then the covarianse divided by the product of the standard deviation of $x_i$ times the standard deviation of $x_k$.  That is, 
+
+$Corr(y_i, y_k) = \frac{Cov(y_i, y_k)}{SD(y_i) * SD(y_k)}$
+
+$Corr(y_i, y_k) = \frac{\sigma_{b0}^2 + \sigma_{b1}^2 * x_i * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_i}{\sqrt{\sigma_{b0}^2 + \sigma_{b1}^2 * x_i^2 + 2 * \rho * \sigma_{b0} * \sigma_{b1} * x_i^2} \sqrt{\sigma_{b0}^2 + \sigma_{b1}^2 * x_k^2 + 2 * \rho * \sigma_{b0} * \sigma_{b1} * x_i}}$
+
+Just for example, let's use the average of the posterior distribution for each term, and consider grades 6 and 7.  Because I centered the data when using JAGS, I'll use $x_i = -1.5$ and $x_k = -0.5$.  Then the estimated correlation for an individual between grades 6 and 7 is 
+
+$Corr(y_6, y_7) \approx \frac{1.38^2 + 0.48^2 * (-1.5) * (-0.5) + 0.71 * 1.38 + 0.48 * (-1.5) + 0.71 * 1.38 + 0.48 * (-0.5)}{\sqrt{1.38^2 + 0.48^2 * (-1.5)^2 + 2 * 0.71 * 1.38 + 0.48 * (-1.5)}\sqrt{1.38^2 + 0.48^2 * (-0.5)^2 + 2 * 0.71 * 1.38 + 0.48 * (-0.5)}} \approx \frac{3.08}{1.91*1.92} \approx 0.84$
+
 Since these students are randomly selected, we can say that these improvements that we've found in math scores will hold true for all students.  We can't make causal inferences, but we can say that as students increase in age by one year, their true mean math achievement score tends to increase by 1 (with a 95% credible interval from 0.975 to 1.078) 
 
 ---
-### R Code
+## R Code
 
 
 

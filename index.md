@@ -169,28 +169,60 @@ I put diffuse normal priors on the fixed effects in the model.  I used a scaled-
 <img src="assets/fig/num2trace.png" title="plot of chunk num2trace" alt="plot of chunk num2trace" style="display: block; margin: auto;" />
 
 
-Summaries of the conditional posterior distributions for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
+We can also check residuals vs fitted values plots and normal quantiles plots.  Below is a plot of the average residual plotted against the average fitted value of each observation.  There doesn't appear to be any pattern or any non-constant which is a good sign.
+
+<img src="assets/fig/num2Diag.png" title="plot of chunk num2Diag" alt="plot of chunk num2Diag" style="display: block; margin: auto;" />
+
+
+A normal-quantiles plot of the average residual is located below.  There don't appear to be any problems with normality in the average residual in this plot.  These are both good signs which show that some of the assumptions for our model are met.
+
+<img src="assets/fig/num2QQ.png" title="plot of chunk num2QQ" alt="plot of chunk num2QQ" style="display: block; margin: auto;" />
+
+
+Summaries of the complete conditional distributions for each of the terms in the model are provided below.  It does appear that math scores do tend to increase over time.  Based on this model and data, there is a 95% chance that moving from one grade to the next is associated with between a 0.97 and 1.07 increase in the true mean math score.  
 
 |id            |   2.5%|    25%|    50%|    75%|  97.5%|
 |:-------------|------:|------:|------:|------:|------:|
-|Intercept     |  1.932|  2.032|  2.075|  2.115|  2.199|
-|Slope         |  0.975|  1.009|  1.029|  1.046|  1.078|
-|Correlation   |  0.646|  0.689|  0.714|  0.736|  0.777|
-|Intercept SD  |  1.290|  1.342|  1.374|  1.406|  1.467|
-|Slope SD      |  0.440|  0.467|  0.481|  0.495|  0.523|
-|Residual SD   |  0.668|  0.687|  0.698|  0.709|  0.730|
+|Intercept     |  1.935|  2.014|  2.058|  2.105|  2.198|
+|Slope         |  0.976|  1.007|  1.024|  1.043|  1.075|
+|Correlation   |  0.647|  0.692|  0.714|  0.737|  0.775|
+|Intercept SD  |  1.288|  1.346|  1.379|  1.408|  1.473|
+|Slope SD      |  0.439|  0.467|  0.483|  0.497|  0.526|
+|Residual SD   |  0.672|  0.688|  0.698|  0.709|  0.729|
 
 
-It is easier to plot these results.  Below is a plot of the posterior distribution of the true mean math score for each grade on the left and the posterior distribution for a new student on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
+It is easier to plot these results.  Below, a plot of the complete conditional distribution of the true mean math score for each grade is on the left and the posterior distribution for a new student is on the right.  We can see that there is slightly more variability in the scores for a new student, as we'd expect.  There is not much more though.  This suggests that there is not much residual variability - most of the uncertainty in these data concerns the location of the mean score for each grade.
 
 There is also more uncertainty as students get older.  I theorize that this is because there's just not that much of a difference between good students and weaker students at the younger ages.  As the students age, the good students advance into geometry and trig while the weaker students fall behind a little bit.  The increased variability for older students originates because we start to see students differentiate themselves by ability.
 <img src="assets/fig/num2post.png" title="plot of chunk num2post" alt="plot of chunk num2post" style="display: block; margin: auto;" />
 
 
+To derive the correlation, I'm going to change your notation a bit so that it is consistent with how I've been writing my models.  
+
+Let $y_i$ and $y_k$ denote two observations from individual $j$.  Recall that our model is $y_i = \beta_0 + \beta_1 * x_i + b_{0,j[i]} + b_{1,j[i]} * x[i] + \epsilon_i$.  Then:
+
+$Cov(y_i, y_k) = Cov(\beta_0 + \beta_1 * x_i + b_{0,j} + b_{1,j} * x[i] + \epsilon_i, \beta_0 + \beta_1 * x_k + b_{0,j} + b_{1,j} * x[k] + \epsilon_k)$
+
+This can be re-written as the covariance of the cross-product of all the terms (I think my terminology is correct here).  The fixed effects drop out of this because they do not vary.  We assume the random effects are all independent of the error so:
+
+$Cov(y_i, y_k) = Cov(b_{0,j}, b_{0,j}) + Cov(b_{1,j}*x_i, b_{1,j}*x_k) + Cov(b_{0,j}, b_{1,j}*x_k) + Cov(b_{1,j}*x_i, b_{0,j})$
+
+$Cov(y_i, y_k) = \sigma_{b0}^2 + \sigma_{b1}^2*x_i*x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_i$
+
+The correlation is then the covarianse divided by the product of the standard deviation of $x_i$ times the standard deviation of $x_k$.  That is, 
+
+$Corr(y_i, y_k) = \frac{Cov(y_i, y_k)}{SD(y_i) * SD(y_k)}$
+
+$Corr(y_i, y_k) = \frac{\sigma_{b0}^2 + \sigma_{b1}^2 * x_i * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_k + \rho * \sigma_{b0} * \sigma_{b1} * x_i}{\sqrt{\sigma_{b0}^2 + \sigma_{b1}^2 * x_i^2 + 2 * \rho * \sigma_{b0} * \sigma_{b1} * x_i^2} \sqrt{\sigma_{b0}^2 + \sigma_{b1}^2 * x_k^2 + 2 * \rho * \sigma_{b0} * \sigma_{b1} * x_i}}$
+
+Just for example, let's use the average of the posterior distribution for each term, and consider grades 6 and 7.  Because I centered the data when using JAGS, I'll use $x_i = -1.5$ and $x_k = -0.5$.  Then the estimated correlation for an individual between grades 6 and 7 is 
+
+$Corr(y_6, y_7) \approx \frac{1.38^2 + 0.48^2 * (-1.5) * (-0.5) + 0.71 * 1.38 + 0.48 * (-1.5) + 0.71 * 1.38 + 0.48 * (-0.5)}{\sqrt{1.38^2 + 0.48^2 * (-1.5)^2 + 2 * 0.71 * 1.38 + 0.48 * (-1.5)}\sqrt{1.38^2 + 0.48^2 * (-0.5)^2 + 2 * 0.71 * 1.38 + 0.48 * (-0.5)}} \approx \frac{3.08}{1.91*1.92} \approx 0.84$
+
 Since these students are randomly selected, we can say that these improvements that we've found in math scores will hold true for all students.  We can't make causal inferences, but we can say that as students increase in age by one year, their true mean math achievement score tends to increase by 1 (with a 95% credible interval from 0.975 to 1.078) 
 
 ---
-### R Code
+## R Code
 
 
 
